@@ -24,7 +24,7 @@ def new_user(name, age, email):
     db = get_db()
     queries = (
         '''
-        CREATE (le:Person {name:$name, age:$age, email:$email})
+        CREATE (le:Person {name:$name, age:$age, email:$email, available:False})
         RETURN le.name
         '''
                 )
@@ -40,20 +40,45 @@ def get_all_users():
     results = db.run(
             '''
             MATCH (r:Person)
-            RETURN r
+            RETURN {id: ID(r), name:r.name, email:r.email, available:r.available, age:r.age} as user
             '''
              )
     records = []
     for record in results:
-        print(record)
         records.append({
-            'name': record['r']['name'],
-            'email': record['r']['email'],
-            'age': record['r']['age']
+            'name': record['user']['name'],
+            'email': record['user']['email'],
+            'age': record['user']['age'],
+            'available': record['user']['available'],
+            'id': record['user']['id']
             })
     if not len(records):
         return 'No users found.'
     return jsonify(records)
 
+@app.route('/updateavailability/<email>', methods=['POST'])
+def update_user_availability(email):
+    db = get_db()
+    get_data_query = (
+        '''
+        MATCH (r:Person {email:$email})
+        RETURN {available:r.available, name:r.name} as user
+        '''
+    )
+    update_availability_query = (
+        '''
+        MATCH (r:Person {email:$email})
+        SET r.available = $available
+        '''
+    )
+    results = db.run(get_data_query, email=email)
+    records = []
+    for result in results:
+        records.append({
+            'name': result['user']['name'],
+            'available': result['user']['available']
+        })
+    db.run(update_availability_query, email=email, available=records[0]['available'] != True)
+    return '{}\'s availability has been set to {}.'.format(records[0]['name'], records[0]['available'] != True)
 
 app.run(host='0.0.0.0', port=5000)
