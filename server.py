@@ -19,16 +19,16 @@ def get_db():
 def basic_route():
     return 'It works.'
 
-@app.route('/newuser/<name>', methods=['POST'])
-def new_user(name):
+@app.route('/newuser/<name>/<age>/<email>', methods=['POST'])
+def new_user(name, age, email):
     db = get_db()
     queries = (
         '''
-        CREATE (le:Person {name:$name})
+        CREATE (le:Person {name:$name, age:$age, email:$email})
         RETURN le.name
         '''
                 )
-    results = db.run(queries, name=name)
+    results = db.run(queries, name=name, age=age, email=email)
     records = []
     for result in results:
         records.append({"name": result["le.name"]})
@@ -37,12 +37,22 @@ def new_user(name):
 @app.route('/users', methods=['GET'])
 def get_all_users():
     db = get_db()
-    results = db.run("MATCH (name:Person)"
-             "RETURN name.name")
+    results = db.run(
+            '''
+            MATCH (r:Person)
+            RETURN r
+            '''
+             )
     records = []
     for record in results:
         print(record)
-        records.append({"name": record["name.name"]})
+        records.append({
+            'name': record['r']['name'],
+            'email': record['r']['email'],
+            'age': record['r']['age']
+            })
+    if not len(records):
+        return 'No users found.'
     return jsonify(records)
 
 
