@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, g, Response
+from flask import Flask, jsonify, g, Response, request
 from flask_cors import CORS
 from json import dumps
 
@@ -19,16 +19,16 @@ def get_db():
 def basic_route():
     return 'It works.'
 
-@app.route('/newuser/<name>/<age>/<email>', methods=['POST'])
-def new_user(name, age, email):
+@app.route('/newuser/<name>/<age>/<email>/<password>', methods=['POST'])
+def new_user(name, age, email, password):
     db = get_db()
     queries = (
         '''
-        CREATE (le:Person {name:$name, age:$age, email:$email, available:False})
+        CREATE (le:Person {name:$name, age:$age, email:$email, available:False, password:$password})
         RETURN le.name
         '''
                 )
-    results = db.run(queries, name=name, age=age, email=email)
+    results = db.run(queries, name=name, age=age, email=email, password=password)
     records = []
     for result in results:
         records.append({"name": result["le.name"]})
@@ -40,7 +40,7 @@ def get_all_users():
     results = db.run(
             '''
             MATCH (r:Person)
-            RETURN {id: ID(r), name:r.name, email:r.email, available:r.available, age:r.age} as user
+            RETURN {id: ID(r), name:r.name, email:r.email, available:r.available, age:r.age, password:r.password} as user
             '''
              )
     records = []
@@ -50,7 +50,8 @@ def get_all_users():
             'email': record['user']['email'],
             'age': record['user']['age'],
             'available': record['user']['available'],
-            'id': record['user']['id']
+            'id': record['user']['id'],
+            'password': record['user']['password']
             })
     if not len(records):
         return 'No users found.'
@@ -77,5 +78,29 @@ def update_user_availability(email, available):
             'available': result['user']['available']
         })
     return '{}\'s availability has been set to {}.'.format(records[0]['name'], records[0]['available'])
+
+@app.route('/login', methods=['POST'])
+def log_user_in():
+    db = get_db()
+    values = request.get_json()
+    get_data_query = (
+        '''
+        MATCH (r:Person {email:$email})
+        RETURN {password:r.password, name:r.name} as user
+        '''
+    )
+    results = db.run(get_data_query, password=values['password'], email=values['email'])
+    records = []
+    for result in results:
+        print(result)
+        records.append({
+            'name': result['user']['name'],
+            'password': result['user']['password']
+        })
+    print(records)
+    if records[0]['password'] == values['password']:
+        return '{} is logged in.'.format(records[0]['name'])
+    else:
+        return 'Something went wrong.'
 
 app.run(host='0.0.0.0', port=5000)
