@@ -3,6 +3,7 @@ from flask_cors import CORS
 from json import dumps
 
 import os
+import uuid
 
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -34,11 +35,11 @@ def new_user():
     values = request.get_json()
     queries = (
         '''
-        CREATE (le:Person {name:$name, age:$age, email:$email, available:False, password:$password})
+        CREATE (le:Person {name:$name, age:$age, email:$email, available:False, password:$password, unique_id:$unique_id})
         RETURN le.name
         '''
                 )
-    results = db.run(queries, name=values['name'], age=values['age'], email=values['email'], password=values['password'])
+    results = db.run(queries, name=values['name'], age=values['age'], email=values['email'], password=values['password'], unique_id=str(uuid.uuid4()))
     records = []
     for result in results:
         records.append({"name": result["le.name"]})
@@ -50,7 +51,7 @@ def get_all_users():
     results = db.run(
             '''
             MATCH (r:Person)
-            RETURN {id: ID(r), name:r.name, email:r.email, available:r.available, age:r.age, password:r.password} as user
+            RETURN {id: r.unique_id, name:r.name, email:r.email, available:r.available, age:r.age, password:r.password} as user
             '''
              )
     records = []
@@ -112,5 +113,29 @@ def log_user_in():
         return '{} is logged in.'.format(records[0]['name'])
     else:
         return 'Something went wrong.'
+
+@app.route('/singleuser', methods=['POST'])
+def get_user_by_id():
+    db = get_db()
+    values = request.get_json()
+    get_query = (
+            '''
+            MATCH (r:Person {unique_id:$id})
+            RETURN {id: r.unique_id, name:r.name, email:r.email, available:r.available, age:r.age, password:r.password} as user
+            '''
+             )
+    results = db.run(get_query, id=values['id'])
+    records = []
+    for record in results:
+        records.append({
+            'name': record['user']['name'],
+            'email': record['user']['email'],
+            'age': record['user']['age'],
+            'available': record['user']['available'],
+            'id': record['user']['id'],
+            'password': record['user']['password']
+            })
+    return jsonify(records)
+
 
 app.run(host='0.0.0.0', port=5000)
