@@ -2,10 +2,19 @@ from flask import Flask, jsonify, g, Response, request
 from flask_cors import CORS
 from json import dumps
 
+import os
+
+# from dotenv import load_dotenv
+# load_dotenv()
+
 from neo4j.v1 import GraphDatabase
 
+DATABASE_KEY = os.getenv("DATABASE_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")
+print(DATABASE_KEY)
+
 uri = "bolt://localhost:7687"
-driver = GraphDatabase.driver(uri, auth=("neo4j", "1234"))
+driver = GraphDatabase.driver(uri, auth=("neo4j", DATABASE_KEY))
 
 app = Flask(__name__)
 CORS(app)
