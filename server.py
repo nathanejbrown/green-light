@@ -28,16 +28,17 @@ def get_db():
 def basic_route():
     return 'It works.'
 
-@app.route('/newuser/<name>/<age>/<email>/<password>', methods=['POST'])
-def new_user(name, age, email, password):
+@app.route('/newuser', methods=['POST'])
+def new_user():
     db = get_db()
+    values = request.get_json()
     queries = (
         '''
         CREATE (le:Person {name:$name, age:$age, email:$email, available:False, password:$password})
         RETURN le.name
         '''
                 )
-    results = db.run(queries, name=name, age=age, email=email, password=password)
+    results = db.run(queries, name=values['name'], age=values['age'], email=values['email'], password=values['password'])
     records = []
     for result in results:
         records.append({"name": result["le.name"]})
