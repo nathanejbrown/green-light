@@ -68,11 +68,12 @@ def get_all_users():
         return 'No users found.'
     return jsonify(records)
 
-@app.route('/updateavailability/<email>/<available>', methods=['POST'])
-def update_user_availability(email, available):
+@app.route('/updateavailability', methods=['POST'])
+def update_user_availability():
     db = get_db()
+    values = request.get_json()
     opposite_available = True
-    if (available.lower() == 'true'):
+    if (values['available'].lower() == 'true'):
         opposite_available = False
     get_data_query = (
         '''
@@ -81,7 +82,7 @@ def update_user_availability(email, available):
         RETURN {available:r.available, name:r.name} as user
         '''
     )
-    results = db.run(get_data_query, email=email, available=opposite_available)
+    results = db.run(get_data_query, email=values['email'], available=opposite_available)
     records = []
     for result in results:
         records.append({
