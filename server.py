@@ -2,6 +2,8 @@ from flask import Flask, jsonify, g, Response, request
 from flask_cors import CORS
 from json import dumps
 
+from person import Person
+
 import os
 import uuid
 
@@ -31,19 +33,14 @@ def basic_route():
 
 @app.route('/newuser', methods=['POST'])
 def new_user():
-    db = get_db()
     values = request.get_json()
-    queries = (
-        '''
-        CREATE (le:Person {name:$name, age:$age, email:$email, available:False, password:$password, unique_id:$unique_id})
-        RETURN le.name
-        '''
-                )
-    results = db.run(queries, name=values['name'], age=values['age'], email=values['email'], password=values['password'], unique_id=str(uuid.uuid4()))
-    records = []
-    for result in results:
-        records.append({"name": result["le.name"]})
-    return 'Successfully added {} to the database.'.format(records[0]['name'])
+    new_person = Person(values['name'], values['age'], values['email'], values['password'])
+    result = new_person.add_to_db()
+    if result:
+        return 'Successfully added {} to the database.'.format(new_person.name)
+    else:
+        return 'There was an issue adding a new person. Please try again.'
+        
 
 @app.route('/users', methods=['GET'])
 def get_all_users():
