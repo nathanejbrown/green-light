@@ -2,7 +2,7 @@ import os
 import uuid
 
 from flask import g
-from neo4j.v1 import GraphDatabase
+from neo4j.v1 import GraphDatabase, CypherError
 
 DATABASE_KEY = os.getenv("DATABASE_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -33,10 +33,13 @@ class Person:
             RETURN le.name
             '''
                     )
-        results = db.run(queries, name=self.name, age=self.age, email=self.email, password=self.password, unique_id=str(uuid.uuid4()))
+        try:
+            results = db.run(queries, name=self.name, age=self.age, email=self.email, password=self.password, unique_id=str(uuid.uuid4()))
+        except (CypherError):
+            return {"error": 'A user with that email already exists.'}
         records = []
         for result in results:
             records.append({"name": result["le.name"]})
-        return records[0]['name']
+        return {"name": records[0]['name']}
 
 

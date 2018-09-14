@@ -14,7 +14,6 @@ from neo4j.v1 import GraphDatabase
 
 DATABASE_KEY = os.getenv("DATABASE_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
-print(DATABASE_KEY)
 
 uri = "bolt://localhost:7687"
 driver = GraphDatabase.driver(uri, auth=("neo4j", DATABASE_KEY))
@@ -36,10 +35,11 @@ def new_user():
     values = request.get_json()
     new_person = Person(values['name'], values['age'], values['email'], values['password'])
     result = new_person.add_to_db()
-    if result:
-        return 'Successfully added {} to the database.'.format(new_person.name)
+    print (result['error'])
+    if result['error']:
+        return result['error']
     else:
-        return 'There was an issue adding a new person. Please try again.'
+        return 'Successfully added {} to the database.'.format(result['name'])
         
 
 @app.route('/users', methods=['GET'])
